@@ -52,15 +52,15 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
+     <Compile Include="Assets\TouchAdventure\Scripts\Controllers\TouchInput\TouchCommand.cs" />
      <Compile Include="Assets\TouchAdventure\Scripts\Controllers\TouchInput\ITouchInputListener.cs" />
      <Compile Include="Assets\TouchAdventure\Scripts\Controllers\MagicWandController.cs" />
      <Compile Include="Assets\TouchAdventure\Scripts\FallingGameplayCamera.cs" />
+     <Compile Include="Assets\TouchAdventure\Scripts\Controllers\FloatingFallingCharacterController.cs" />
+     <Compile Include="Assets\TouchAdventure\Scripts\Controllers\CloudController.cs" />
      <Compile Include="Assets\TouchAdventure\Scripts\Controllers\TouchInput\TouchInputData.cs" />
      <Compile Include="Assets\TouchAdventure\Scripts\Controllers\TouchInput\TouchInputController.cs" />
      <Compile Include="Assets\TouchAdventure\Scripts\Controllers\TouchInput\TouchInputHandler.cs" />
-     <Compile Include="Assets\TouchAdventure\Scripts\Controllers\TouchInput\TouchCommand.cs" />
-     <Compile Include="Assets\TouchAdventure\Scripts\Controllers\CloudController.cs" />
-     <Compile Include="Assets\TouchAdventure\Scripts\Controllers\FloatingFallingCharacterController.cs" />
  <Reference Include="UnityEngine">
  <HintPath>C:/Program Files/Unity/Hub/Editor/2020.3.15f2/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
  </Reference>

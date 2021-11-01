@@ -5,16 +5,16 @@ m_ProjectFiles:
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 637710584977715450
-    m_Hash: 380477359
+      ticks: 637713226100391647
+    m_Hash: 3938310540
   m_LockFileStatus:
     m_FilePath: C:/Users/BrunoCesarPuliDalaRo/touch-adventure/Touch Adventure/Packages/packages-lock.json
     m_PathExists: 1
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 637710584977744790
-    m_Hash: 3735250047
+      ticks: 637713226100391647
+    m_Hash: 1611241278
 m_EmbeddedPackageManifests:
   m_ManifestsStatus: {}
 m_PackageAssets:
