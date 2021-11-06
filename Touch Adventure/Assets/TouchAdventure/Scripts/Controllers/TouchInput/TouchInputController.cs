@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,17 +12,14 @@ namespace TouchAdventure.Scripts.Controllers.TouchInput
         [field: Header("Input")]
         [field: SerializeField] private InputActionReference TouchInputAction { get; set; }
         [field: SerializeField] private InputActionReference TouchMoveAction { get; set; }
-        [field: SerializeField] private float InputInterval { get; set; } = 0.04f;
     
         private Dictionary<int, TouchInputHandler> InputHandlers { get; set; }
         private bool InputEnabled { get; set; }
         
         private Camera MainCamera { get; set; }
         private ITouchInputListener Listener { get; set; }
-        private TouchCommand TouchCommand { get; set; }
         
-        
-        private float CurrentInputInterval { get; set; }
+        private Dictionary<Guid, TouchCommand> ActiveTouchCommands { get; set; }
 
         public void Init(Camera mainCamera, ITouchInputListener listener)
         {
@@ -32,27 +31,24 @@ namespace TouchAdventure.Scripts.Controllers.TouchInput
             TouchInputAction.action.performed += OnTouchInput;
             TouchMoveAction.action.performed += OnTouchInput;
 
-            TouchCommand = null;
+            ActiveTouchCommands = new Dictionary<Guid, TouchCommand>();
             InputEnabled = true;
 
-            CurrentInputInterval = InputInterval;
         }
 
         private void Update()
         {
-            CurrentInputInterval -= Time.deltaTime;
+            if (ActiveTouchCommands.Count == 0) return;
 
-            if (CurrentInputInterval > 0) return;
-            if (TouchCommand == null) return;
-
-            Listener.OnTouch(TouchCommand);
-            TouchCommand = null;
-            CurrentInputInterval = InputInterval;
+            foreach (var activeTouchCommand in ActiveTouchCommands.Select(kvp => kvp.Value))
+            {
+                activeTouchCommand.PrepareWorldPosition(MainCamera);
+                Listener.OnTouch(activeTouchCommand);
+            }
         }
 
         private void OnTouchInput(InputAction.CallbackContext callbackContext)
         {
-            if (TouchCommand != null) return;
             if (InputEnabled == false) return;
             
             // Se não é touch, cancela a ação
@@ -73,12 +69,15 @@ namespace TouchAdventure.Scripts.Controllers.TouchInput
 
                     if (dragState != null)
                     {
-                        TouchCommand = new TouchCommand(currentHandler.HandlerId, GetWorldPosition(dragState.Position));
+                        ActiveTouchCommands[currentHandler.HandlerId].UpdateScreenPosition(dragState.Position);
+                        // TouchCommand = new TouchCommand(currentHandler.HandlerId, GetWorldPosition(dragState.Position));
                     }
                 }
                 else // Se não tivermos, criamos um novo handler para esse input
                 {
-                    InputHandlers.Add(inputState.Id, new TouchInputHandler(inputState));
+                    var touchInputHandler = new TouchInputHandler(inputState);
+                    InputHandlers.Add(inputState.Id, touchInputHandler);
+                    ActiveTouchCommands.Add(touchInputHandler.HandlerId, new TouchCommand(inputState.Id, inputState.Position));
                 }
             }
             else
@@ -86,25 +85,14 @@ namespace TouchAdventure.Scripts.Controllers.TouchInput
                 // Se jà temos um handler com esse Id
                 if (currentHandler != null)
                 {
-                    if (!currentHandler.Finished)
-                    {
-                        var activeTouch = currentHandler.Finish(inputState);
-                        if (activeTouch != null)
-                        {
-                            TouchCommand = new TouchCommand(currentHandler.HandlerId, GetWorldPosition(activeTouch.Position), true);
-                        }
-                    }
+                    if (!currentHandler.Finished) currentHandler.Finish(inputState);
 
                     InputHandlers.Remove(inputState.Id);
+                    ActiveTouchCommands.Remove(currentHandler.HandlerId);
                 }
             }
         }
-        
-        private Vector3 GetWorldPosition(Vector2 InputPosition)
-        {
-            return MainCamera.ScreenToWorldPoint(new Vector3(InputPosition.x, InputPosition.y, 0));
-        }
-    
+
         private void OnDestroy()
         {
             InputHandlers?.Clear();

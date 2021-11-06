@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using TouchAdventure.Scripts.Controllers.TouchInput;
 using UnityEngine;
@@ -7,15 +8,15 @@ using Random = System.Random;
 
 namespace TouchAdventure.Scripts.Controllers
 {
-    public class MagicWandController : MonoBehaviour, ITouchInputListener
+    public partial class MagicWandController : MonoBehaviour, ITouchInputListener
     {
-        private const float CloudRadius = 0.17f;
+        private const int MAXClouds = 128;
         [field: SerializeField] private Camera MainCamera { get; set; }
         [field: SerializeField] private List<CloudController> CloudsPrefabs { get; set; }
         [field: SerializeField] private TouchInputController TouchInputController { get; set; }
         [field: SerializeField] private Transform CloudsParent { get; set; }
         
-        private Dictionary<Guid, List<CloudController>> CloudsPathDict { get; set; }
+        private Dictionary<int, List<CloudPathPoint>> CloudsPathDict { get; set; }
 
         private Random Random { get; set; }
 
@@ -27,11 +28,9 @@ namespace TouchAdventure.Scripts.Controllers
         private void Start()
         {
             TouchInputController.Init(MainCamera, this);
-            CloudsPathDict = new Dictionary<Guid, List<CloudController>>();
+            CloudsPathDict = new Dictionary<int, List<CloudPathPoint>>();
         }
-
         
-        //todo implementar nova abordagem que salva os pontos no espaço e instancia nuvens no caminho, para matar o pproblema de arrastar o dedo devagar e deiixar fazer overlap!
         public void OnTouch(TouchCommand touchCommand)
         {
             CloudsPathCleanup();
@@ -40,36 +39,51 @@ namespace TouchAdventure.Scripts.Controllers
 
             if (CloudsPathDict.TryGetValue(touchCommand.InputId, out var cloudPath))
             {
-                var collisions = Physics2D.OverlapCircleAll(touchCommand.WorldPosition, CloudRadius, LayerMask.GetMask("Clouds"));
-            
-                var cloudsGameObjects = cloudPath.Select(controller => controller.gameObject);
-                if (collisions.Any(collision => cloudsGameObjects.Contains(collision.gameObject)))
+                var lastCloudController = cloudPath.Last(point => point.HasCloud).Controller;
+
+                var originalRadius = lastCloudController.Collider.radius;
+                
+                lastCloudController.Collider.radius *= 2;
+                
+                if (lastCloudController.Collider.OverlapPoint(worldPosition))
                 {
-                    Debug.Log($"didnt instantiate collided cloud!");
+                    // No cloud created
+                    CloudsPathDict[touchCommand.InputId].Add(new CloudPathPoint(worldPosition, null));
                 }
                 else
                 {
-                    var cloud = CreateNewCloud(worldPosition);
-                    CloudsPathDict[touchCommand.InputId].Add(cloud);
+                    // New Cloud created
+                    var cloudController = CreateNewCloud(worldPosition);
+                    CloudsPathDict[touchCommand.InputId].Add(new CloudPathPoint(worldPosition, cloudController));
+                    CloudsPathExcessRemoval();
                 }
+                
+                lastCloudController.Collider.radius -= originalRadius;
             }
             else
             {
+                // New Cloud (and path) created
                 Debug.Log($"New cloud path {touchCommand.InputId}");
-                var cloud = CreateNewCloud(worldPosition);
-                CloudsPathDict.Add(touchCommand.InputId, new List<CloudController> {cloud});
+                
+                var cloudController = CreateNewCloud(worldPosition);
+                
+                CloudsPathDict.Add(touchCommand.InputId,
+                    new List<CloudPathPoint> {new CloudPathPoint(worldPosition, cloudController)});
+                
+                CloudsPathExcessRemoval();
             }
         }
 
         private void CloudsPathCleanup()
         {
-            var pathsToRemove = new List<Guid>();
+            var pathsToRemove = new List<int>();
             
-            foreach (var kvp in CloudsPathDict)
+            foreach (var pair in CloudsPathDict)
             {
-                kvp.Value.RemoveAll(controller => controller == null);
+                var cloudPathPoints = pair.Value;
 
-                if (kvp.Value.Count == 0) pathsToRemove.Add(kvp.Key);
+                if (cloudPathPoints.Where(point => point.HasCloud).All(point => point.Poofed)) 
+                    pathsToRemove.Add(pair.Key);
             }
 
             foreach (var key in pathsToRemove)
@@ -78,9 +92,29 @@ namespace TouchAdventure.Scripts.Controllers
             }
         }
 
+        private void CloudsPathExcessRemoval()
+        {
+            var allValidClouds = new List<CloudPathPoint>();
+            
+            foreach (var cloudPath in CloudsPathDict.Select(kvp => kvp.Value))
+            {
+                var validClouds = cloudPath.Where(point => point.HasCloud && !point.Poofed).ToList();
+                
+                allValidClouds.AddRange(validClouds);
+                
+            }
+            
+            if (allValidClouds.Count > MAXClouds)
+            {
+                allValidClouds[0].InstantPoof();
+            }
+        }
+
         private CloudController CreateNewCloud(Vector2 worldPosition)
         {
-            var cloud = Instantiate(GetRandomCloudPrefab(), new Vector3(worldPosition.x, worldPosition.y), Quaternion.identity, CloudsParent);
+            var cloud = Instantiate(GetRandomCloudPrefab(),
+                new Vector3(worldPosition.x, worldPosition.y), Quaternion.identity, CloudsParent);
+            
             //todo init Cloud?
             return cloud;
         }
