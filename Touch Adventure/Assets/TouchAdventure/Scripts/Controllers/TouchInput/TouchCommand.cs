@@ -5,14 +5,14 @@ namespace TouchAdventure.Scripts.Controllers.TouchInput
 {
     public class TouchCommand
     {
-        public int InputId { get; set; }
+        public Guid InputId { get; set; }
         public Vector2 ScreenPosition { get; set; }
         public bool FinishingInputCommand { get; set; }
         public Vector2 WorldPosition { get; set; }
 
-        public TouchCommand(int inputId, Vector2 screenPosition, bool finishingInputCommand = false)
+        public TouchCommand(Vector2 screenPosition, bool finishingInputCommand = false)
         {
-            InputId = inputId;
+            InputId = Guid.NewGuid();
             ScreenPosition = screenPosition;
             FinishingInputCommand = finishingInputCommand;
             
@@ -22,6 +22,11 @@ namespace TouchAdventure.Scripts.Controllers.TouchInput
         public void UpdateScreenPosition(Vector2 screenPosition)
         {
             ScreenPosition = screenPosition;
+        }
+
+        public void FinishTouchCommand()
+        {
+            FinishingInputCommand = true;
         }
 
         public void PrepareWorldPosition(Camera camera)

@@ -11,10 +11,9 @@ GameObject:
   - component: {fileID: 1625921902707163132}
   - component: {fileID: 1625921902707163131}
   - component: {fileID: 2025889356353910764}
-  - component: {fileID: 3172711150772325654}
   - component: {fileID: 3085866571962012061}
   m_Layer: 6
-  m_Name: cloud_1
+  m_Name: CloudController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -86,18 +85,6 @@ SpriteRenderer:
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!114 &2025889356353910764
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1625921902707163130}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c697ca60fc1843498ef138bdcab58d58, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &3172711150772325654
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

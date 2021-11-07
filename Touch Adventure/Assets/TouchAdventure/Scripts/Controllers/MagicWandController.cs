@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using TouchAdventure.Scripts.Controllers.TouchInput;
 using UnityEngine;
@@ -12,13 +11,35 @@ namespace TouchAdventure.Scripts.Controllers
     {
         private const int MAXClouds = 128;
         [field: SerializeField] private Camera MainCamera { get; set; }
-        [field: SerializeField] private List<CloudController> CloudsPrefabs { get; set; }
+        [field: SerializeField] private List<CloudPathPoint> CloudsPrefabs { get; set; }
         [field: SerializeField] private TouchInputController TouchInputController { get; set; }
         [field: SerializeField] private Transform CloudsParent { get; set; }
         
-        private Dictionary<int, List<CloudPathPoint>> CloudsPathDict { get; set; }
+        private Dictionary<Guid, CloudPath> CloudsPathDict { get; set; }
 
         private Random Random { get; set; }
+
+        public class CloudPath
+        {
+            public bool InputFinished { get; private set; }
+            public List<CloudPathPoint> PathPoints { get; }
+
+            public CloudPath(CloudPathPoint firstPathPoint)
+            {
+                PathPoints = new List<CloudPathPoint> {firstPathPoint};
+                InputFinished = false;
+            }
+
+            public void FinishInput()
+            {
+                InputFinished = true;
+            }
+
+            public void AddPoint(CloudPathPoint newPathPoint)
+            {
+                PathPoints.Add(newPathPoint);
+            }
+        }
 
         private void Awake()
         {
@@ -28,47 +49,57 @@ namespace TouchAdventure.Scripts.Controllers
         private void Start()
         {
             TouchInputController.Init(MainCamera, this);
-            CloudsPathDict = new Dictionary<int, List<CloudPathPoint>>();
+            CloudsPathDict = new Dictionary<Guid, CloudPath>();
         }
         
         public void OnTouch(TouchCommand touchCommand)
         {
-            CloudsPathCleanup();
+            if (touchCommand.FinishingInputCommand)
+            {
+                if (CloudsPathDict.TryGetValue(touchCommand.InputId, out var finishingCloudPath))
+                {
+                    finishingCloudPath.FinishInput();
+                }
+
+                return;
+            }
             
+            CloudsPathCleanup();
+
             var worldPosition = touchCommand.WorldPosition;
 
             if (CloudsPathDict.TryGetValue(touchCommand.InputId, out var cloudPath))
             {
-                var lastCloudController = cloudPath.Last(point => point.HasCloud).Controller;
-
-                var originalRadius = lastCloudController.Collider.radius;
+                var lastCloudController = cloudPath.PathPoints.Last(point => point.CloudEnabled).Controller;
+                if (lastCloudController == null || !lastCloudController.gameObject.activeInHierarchy) return;
                 
                 lastCloudController.Collider.radius *= 2;
                 
                 if (lastCloudController.Collider.OverlapPoint(worldPosition))
                 {
-                    // No cloud created
-                    CloudsPathDict[touchCommand.InputId].Add(new CloudPathPoint(worldPosition, null));
+                    lastCloudController.Collider.radius /= 2;
+
+                    // Cloud disabled
+                    var newPathPoint = CreateNewPathPoint(worldPosition, false);
+                    CloudsPathDict[touchCommand.InputId].AddPoint(newPathPoint);
                 }
                 else
                 {
-                    // New Cloud created
-                    var cloudController = CreateNewCloud(worldPosition);
-                    CloudsPathDict[touchCommand.InputId].Add(new CloudPathPoint(worldPosition, cloudController));
+                    lastCloudController.Collider.radius /= 2;
+
+                    // Cloud enabled
+                    var newPathPoint = CreateNewPathPoint(worldPosition, true);
+                    CloudsPathDict[touchCommand.InputId].AddPoint(newPathPoint);
                     CloudsPathExcessRemoval();
                 }
-                
-                lastCloudController.Collider.radius -= originalRadius;
             }
             else
             {
-                // New Cloud (and path) created
+                // New Path created
                 Debug.Log($"New cloud path {touchCommand.InputId}");
                 
-                var cloudController = CreateNewCloud(worldPosition);
-                
-                CloudsPathDict.Add(touchCommand.InputId,
-                    new List<CloudPathPoint> {new CloudPathPoint(worldPosition, cloudController)});
+                var cloudPathPoint = CreateNewPathPoint(worldPosition, true);
+                CloudsPathDict.Add(touchCommand.InputId, new CloudPath(cloudPathPoint));
                 
                 CloudsPathExcessRemoval();
             }
@@ -76,18 +107,19 @@ namespace TouchAdventure.Scripts.Controllers
 
         private void CloudsPathCleanup()
         {
-            var pathsToRemove = new List<int>();
+            var pathsToRemove = new List<Guid>();
             
             foreach (var pair in CloudsPathDict)
             {
-                var cloudPathPoints = pair.Value;
+                var path = pair.Value;
 
-                if (cloudPathPoints.Where(point => point.HasCloud).All(point => point.Poofed)) 
+                if (path.InputFinished && path.PathPoints.Where(point => point.CloudEnabled).All(point => point.Poofed)) 
                     pathsToRemove.Add(pair.Key);
             }
 
             foreach (var key in pathsToRemove)
             {
+                Debug.Log($"Cleanup -> removing path {key}");
                 CloudsPathDict.Remove(key);
             }
         }
@@ -98,28 +130,27 @@ namespace TouchAdventure.Scripts.Controllers
             
             foreach (var cloudPath in CloudsPathDict.Select(kvp => kvp.Value))
             {
-                var validClouds = cloudPath.Where(point => point.HasCloud && !point.Poofed).ToList();
+                var validClouds = cloudPath.PathPoints.Where(point => point.CloudEnabled && !point.Poofed).ToList();
                 
                 allValidClouds.AddRange(validClouds);
-                
             }
             
             if (allValidClouds.Count > MAXClouds)
             {
-                allValidClouds[0].InstantPoof();
+                allValidClouds.OrderBy(point => point.TimeStamp).First().Poof();
             }
         }
 
-        private CloudController CreateNewCloud(Vector2 worldPosition)
+        private CloudPathPoint CreateNewPathPoint(Vector2 worldPosition, bool enableCloud)
         {
             var cloud = Instantiate(GetRandomCloudPrefab(),
                 new Vector3(worldPosition.x, worldPosition.y), Quaternion.identity, CloudsParent);
             
-            //todo init Cloud?
+            cloud.Init(worldPosition, enableCloud);
             return cloud;
         }
 
-        private CloudController GetRandomCloudPrefab()
+        private CloudPathPoint GetRandomCloudPrefab()
         {
             return CloudsPrefabs.ElementAt(Random.Next(CloudsPrefabs.Count));
         }

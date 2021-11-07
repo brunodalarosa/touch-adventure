@@ -40,10 +40,24 @@ namespace TouchAdventure.Scripts.Controllers.TouchInput
         {
             if (ActiveTouchCommands.Count == 0) return;
 
-            foreach (var activeTouchCommand in ActiveTouchCommands.Select(kvp => kvp.Value))
+            var touchCommandsToRemove = new List<Guid>();
+
+            foreach (var kvp in ActiveTouchCommands)
             {
+                var activeTouchCommand = kvp.Value;
+                
                 activeTouchCommand.PrepareWorldPosition(MainCamera);
                 Listener.OnTouch(activeTouchCommand);
+
+                if (activeTouchCommand.FinishingInputCommand)
+                {
+                    touchCommandsToRemove.Add(kvp.Key);
+                }
+            }
+
+            foreach (var key in touchCommandsToRemove)
+            {
+                ActiveTouchCommands.Remove(key);
             }
         }
 
@@ -70,14 +84,13 @@ namespace TouchAdventure.Scripts.Controllers.TouchInput
                     if (dragState != null)
                     {
                         ActiveTouchCommands[currentHandler.HandlerId].UpdateScreenPosition(dragState.Position);
-                        // TouchCommand = new TouchCommand(currentHandler.HandlerId, GetWorldPosition(dragState.Position));
                     }
                 }
                 else // Se não tivermos, criamos um novo handler para esse input
                 {
                     var touchInputHandler = new TouchInputHandler(inputState);
                     InputHandlers.Add(inputState.Id, touchInputHandler);
-                    ActiveTouchCommands.Add(touchInputHandler.HandlerId, new TouchCommand(inputState.Id, inputState.Position));
+                    ActiveTouchCommands.Add(touchInputHandler.HandlerId, new TouchCommand(inputState.Position));
                 }
             }
             else
@@ -85,10 +98,13 @@ namespace TouchAdventure.Scripts.Controllers.TouchInput
                 // Se jà temos um handler com esse Id
                 if (currentHandler != null)
                 {
-                    if (!currentHandler.Finished) currentHandler.Finish(inputState);
+                    if (!currentHandler.Finished)
+                    {
+                        currentHandler.Finish(inputState);
+                        ActiveTouchCommands[currentHandler.HandlerId].FinishTouchCommand();
+                    }
 
                     InputHandlers.Remove(inputState.Id);
-                    ActiveTouchCommands.Remove(currentHandler.HandlerId);
                 }
             }
         }

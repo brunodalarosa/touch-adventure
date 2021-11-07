@@ -197,23 +197,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &539821328 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4242613102410295068, guid: 43ba7b2fbb137e3418b0c5a97272fe84, type: 3}
-  m_PrefabInstance: {fileID: 4242613101121936905}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &539821329
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 539821328}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8de5bf8baf842bc47a831202263dc40a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &948249501
 GameObject:
   m_ObjectHideFlags: 0
@@ -264,7 +247,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   <TouchInputAction>k__BackingField: {fileID: 3082386271993385492, guid: b80abfb2ba1de774abb548cfff1c2350, type: 3}
   <TouchMoveAction>k__BackingField: {fileID: 1167165348230766484, guid: b80abfb2ba1de774abb548cfff1c2350, type: 3}
-  <InputInterval>k__BackingField: 0.04
 --- !u!1 &1225700025
 GameObject:
   m_ObjectHideFlags: 0
@@ -513,7 +495,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   <MainCamera>k__BackingField: {fileID: 7364834493728033746}
   <CloudsPrefabs>k__BackingField:
-  - {fileID: 2025889356353910764, guid: 7c2f62b4eb729fd449c3e2bae1c32c62, type: 3}
+  - {fileID: 1086132046322745533, guid: f531ea83e61db6a468ab66f129fa9d7e, type: 3}
   <TouchInputController>k__BackingField: {fileID: 948249503}
   <CloudsParent>k__BackingField: {fileID: 1225700026}
 --- !u!4 &1983968574
@@ -573,12 +555,7 @@ PrefabInstance:
       propertyPath: m_Name
       value: Egg
       objectReference: {fileID: 0}
-    - target: {fileID: 4242613102410295071, guid: 43ba7b2fbb137e3418b0c5a97272fe84, type: 3}
-      propertyPath: m_Mass
-      value: 0.2
-      objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 493808437599641414, guid: 43ba7b2fbb137e3418b0c5a97272fe84, type: 3}
+    m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 43ba7b2fbb137e3418b0c5a97272fe84, type: 3}
 --- !u!1001 &7364834493728033745
 PrefabInstance:
