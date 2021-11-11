@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TouchAdventure.Scripts.Controllers.TouchInput;
@@ -7,49 +8,31 @@ using Random = System.Random;
 
 namespace TouchAdventure.Scripts.Controllers
 {
-    public partial class MagicWandController : MonoBehaviour, ITouchInputListener
+    public class MagicWandController : MonoBehaviour, ITouchInputListener
     {
         private const int MAXClouds = 128;
+        private readonly WaitForSeconds CloudsPathCleanupInterval = new WaitForSeconds(5);
+        
         [field: SerializeField] private Camera MainCamera { get; set; }
         [field: SerializeField] private List<CloudPathPoint> CloudsPrefabs { get; set; }
         [field: SerializeField] private TouchInputController TouchInputController { get; set; }
         [field: SerializeField] private Transform CloudsParent { get; set; }
         
-        private Dictionary<Guid, CloudPath> CloudsPathDict { get; set; }
-
         private Random Random { get; set; }
-
-        public class CloudPath
-        {
-            public bool InputFinished { get; private set; }
-            public List<CloudPathPoint> PathPoints { get; }
-
-            public CloudPath(CloudPathPoint firstPathPoint)
-            {
-                PathPoints = new List<CloudPathPoint> {firstPathPoint};
-                InputFinished = false;
-            }
-
-            public void FinishInput()
-            {
-                InputFinished = true;
-            }
-
-            public void AddPoint(CloudPathPoint newPathPoint)
-            {
-                PathPoints.Add(newPathPoint);
-            }
-        }
+        private Dictionary<Guid, CloudPath> CloudsPathDict { get; set; }
+        private Queue<CloudPathPoint> CloudsQueue { get; set; }
 
         private void Awake()
         {
             Random = new Random();
+            CloudsPathDict = new Dictionary<Guid, CloudPath>();
+            CloudsQueue = new Queue<CloudPathPoint>();
         }
 
         private void Start()
         {
             TouchInputController.Init(MainCamera, this);
-            CloudsPathDict = new Dictionary<Guid, CloudPath>();
+            StartCoroutine(CloudsPathCleanup());
         }
         
         public void OnTouch(TouchCommand touchCommand)
@@ -63,8 +46,6 @@ namespace TouchAdventure.Scripts.Controllers
 
                 return;
             }
-            
-            CloudsPathCleanup();
 
             var worldPosition = touchCommand.WorldPosition;
 
@@ -90,7 +71,8 @@ namespace TouchAdventure.Scripts.Controllers
                     // Cloud enabled
                     var newPathPoint = CreateNewPathPoint(worldPosition, true);
                     CloudsPathDict[touchCommand.InputId].AddPoint(newPathPoint);
-                    CloudsPathExcessRemoval();
+                    CloudsQueue.Enqueue(newPathPoint);
+                    CloudQueueCleanup();
                 }
             }
             else
@@ -100,44 +82,46 @@ namespace TouchAdventure.Scripts.Controllers
                 
                 var cloudPathPoint = CreateNewPathPoint(worldPosition, true);
                 CloudsPathDict.Add(touchCommand.InputId, new CloudPath(cloudPathPoint));
+                CloudsQueue.Enqueue(cloudPathPoint);
                 
-                CloudsPathExcessRemoval();
+                CloudQueueCleanup();
             }
         }
 
-        private void CloudsPathCleanup()
+        private IEnumerator CloudsPathCleanup()
         {
-            var pathsToRemove = new List<Guid>();
+            while (true)
+            {
+                yield return CloudsPathCleanupInterval;
             
-            foreach (var pair in CloudsPathDict)
-            {
-                var path = pair.Value;
+                var pathsToRemove = new List<Guid>();
+            
+                foreach (var pair in CloudsPathDict)
+                {
+                    var path = pair.Value;
 
-                if (path.InputFinished && path.PathPoints.Where(point => point.CloudEnabled).All(point => point.Poofed)) 
-                    pathsToRemove.Add(pair.Key);
-            }
+                    if (path.InputFinished && path.PathPoints.Where(point => point.CloudEnabled).All(point => point.Poofed)) 
+                        pathsToRemove.Add(pair.Key);
+                }
 
-            foreach (var key in pathsToRemove)
-            {
-                Debug.Log($"Cleanup -> removing path {key}");
-                CloudsPathDict.Remove(key);
+                foreach (var key in pathsToRemove)
+                {
+                    Debug.Log($"Cleanup -> removing path {key}");
+                    CloudsPathDict.Remove(key);
+                }
             }
         }
 
-        private void CloudsPathExcessRemoval()
+        private void CloudQueueCleanup()
         {
-            var allValidClouds = new List<CloudPathPoint>();
-            
-            foreach (var cloudPath in CloudsPathDict.Select(kvp => kvp.Value))
+            if (CloudsQueue.Count > MAXClouds)
             {
-                var validClouds = cloudPath.PathPoints.Where(point => point.CloudEnabled && !point.Poofed).ToList();
+                CloudPathPoint cloudToPoof;
                 
-                allValidClouds.AddRange(validClouds);
-            }
-            
-            if (allValidClouds.Count > MAXClouds)
-            {
-                allValidClouds.OrderBy(point => point.TimeStamp).First().Poof();
+                do cloudToPoof = CloudsQueue.Dequeue();
+                while (cloudToPoof.Poofed);
+
+                cloudToPoof.Poof();
             }
         }
 
@@ -153,6 +137,11 @@ namespace TouchAdventure.Scripts.Controllers
         private CloudPathPoint GetRandomCloudPrefab()
         {
             return CloudsPrefabs.ElementAt(Random.Next(CloudsPrefabs.Count));
+        }
+
+        private void OnDestroy()
+        {
+            StopCoroutine(CloudsPathCleanup());
         }
     }
 }

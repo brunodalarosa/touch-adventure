@@ -12,14 +12,12 @@ namespace TouchAdventure.Scripts.Controllers
         
         [field: SerializeField] public CloudController Controller { get; private set; }
 
-        public long TimeStamp { get; set; }
         public Vector2 Point { get; private set; }
         public bool CloudEnabled { get; private set; }
         public bool Poofed { get; private set; }
 
         public void Init(Vector2 point, bool enableCloud)
         {
-            TimeStamp = DateTimeOffset.UtcNow.Ticks;
             Point = point;
             CloudEnabled = enableCloud;
             Poofed = false;
