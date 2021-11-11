@@ -5,10 +5,12 @@ namespace TouchAdventure.Scripts.Controllers
     [RequireComponent(typeof(Rigidbody2D))]
     public class FloatingFallingCharacterController : MonoBehaviour
     {
-        private const float MaxYVelocity = 2f;
-        private const float MaxXVelocity = 2f;
+        private const float MaxYVelocity = 1f;
+        private const float MaxXVelocity = 1f;
         
         private Rigidbody2D Rigidbody2D { get; set; }
+        
+        [field: SerializeField] public CircleCollider2D NoTouchArea { get; private set; }
 
         private void Awake()
         {

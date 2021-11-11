@@ -63,6 +63,7 @@
      <Compile Include="Assets\TouchAdventure\Scripts\Controllers\TouchInput\TouchInputHandler.cs" />
      <Compile Include="Assets\TouchAdventure\Scripts\Controllers\CloudPathPoint.cs" />
      <Compile Include="Assets\TouchAdventure\Scripts\Controllers\CloudPath.cs" />
+     <Compile Include="Assets\TouchAdventure\Scripts\Controllers\FloatingFallingGameController.cs" />
  <Reference Include="UnityEngine">
  <HintPath>C:/Program Files/Unity/Hub/Editor/2020.3.15f2/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
  </Reference>

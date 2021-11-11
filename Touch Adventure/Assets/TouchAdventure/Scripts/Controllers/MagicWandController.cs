@@ -13,7 +13,6 @@ namespace TouchAdventure.Scripts.Controllers
         private const int MAXClouds = 128;
         private readonly WaitForSeconds CloudsPathCleanupInterval = new WaitForSeconds(5);
         
-        [field: SerializeField] private Camera MainCamera { get; set; }
         [field: SerializeField] private List<CloudPathPoint> CloudsPrefabs { get; set; }
         [field: SerializeField] private TouchInputController TouchInputController { get; set; }
         [field: SerializeField] private Transform CloudsParent { get; set; }
@@ -21,6 +20,9 @@ namespace TouchAdventure.Scripts.Controllers
         private Random Random { get; set; }
         private Dictionary<Guid, CloudPath> CloudsPathDict { get; set; }
         private Queue<CloudPathPoint> CloudsQueue { get; set; }
+        
+        private Camera MainCamera { get; set; }
+        private FloatingFallingCharacterController Egg { get; set; }
 
         private void Awake()
         {
@@ -29,12 +31,15 @@ namespace TouchAdventure.Scripts.Controllers
             CloudsQueue = new Queue<CloudPathPoint>();
         }
 
-        private void Start()
+        public void Init(Camera mainCamera, FloatingFallingCharacterController egg)
         {
+            MainCamera = mainCamera;
+            Egg = egg;
+            
             TouchInputController.Init(MainCamera, this);
             StartCoroutine(CloudsPathCleanup());
         }
-        
+
         public void OnTouch(TouchCommand touchCommand)
         {
             if (touchCommand.FinishingInputCommand)
@@ -51,6 +56,12 @@ namespace TouchAdventure.Scripts.Controllers
 
             if (CloudsPathDict.TryGetValue(touchCommand.InputId, out var cloudPath))
             {
+                if (Egg.NoTouchArea.OverlapPoint(worldPosition))
+                {
+                    //todo instant poof cloud animation?
+                    return;
+                }
+                
                 var lastCloudController = cloudPath.PathPoints.Last(point => point.CloudEnabled).Controller;
                 if (lastCloudController == null || !lastCloudController.gameObject.activeInHierarchy) return;
                 
